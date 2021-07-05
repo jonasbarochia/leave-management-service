@@ -64,8 +64,17 @@ public class LeaveUpdateService {
 		try {
 			log.info("Leave Upload path is created : {}", uploadPath);
 			Files.createDirectories(Paths.get(uploadPath));
+			File uploadDirectory = new File(uploadPath);
+
+			File employeeLeaveData = FileUtils.getFile(uploadDirectory, EMPLOYEE_LEAVE_BALANCE_FILE);
+
+			if (employeeLeaveData.exists()) {
+				populateEmployeeLeaveBalance(uploadDirectory);
+			} else {
+				throw new RuntimeException("Employee leave balance file not found");
+			}
 		} catch (IOException e) {
-			throw new RuntimeException("Could not create upload folder ", e);
+			throw new RuntimeException("Error in setting up application ", e);
 		}
 	}
 
@@ -73,20 +82,16 @@ public class LeaveUpdateService {
 	public void leaveUpdateTask() {
 		try {
 			log.info("###############");
-			log.info("Processing applied - {}", new Date());
+			log.info("Processing Leave requests - {}", new Date());
 			File uploadDirectory = new File(uploadPath);
-
-			File employeeLeaveData = FileUtils.getFile(uploadDirectory, EMPLOYEE_LEAVE_BALANCE_FILE);
 			File employeeLeaveRequestData = FileUtils.getFile(uploadDirectory, EMPLOYEE_LEAVE_REQUEST_FILE);
 
-			if (!FileUtils.isEmptyDirectory(uploadDirectory) && employeeLeaveData.exists()
-					&& employeeLeaveRequestData.exists()) {
-				populateEmployeeLeaveBalance(uploadDirectory);
+			if (!FileUtils.isEmptyDirectory(uploadDirectory) && employeeLeaveRequestData.exists()) {
 				populateEmployeeLeaveRequest(uploadDirectory);
 				processLeaveRequests();
 				updateEmployeeLeaveData();
 			} else {
-				log.info("EmployeeData.csv & Leaves.csv files should be present in the leave directory");
+				log.info("Leaves.csv files should be present in the leave directory");
 			}
 			log.info("###############");
 		} catch (Exception e) {
@@ -181,6 +186,8 @@ public class LeaveUpdateService {
 
 		if (!employeesLeaveBalance.isEmpty() && !employeesLeaveRequest.isEmpty()) {
 			employeesLeaveRequest.forEach(req -> validateLeaveRequest(req.getEmployeeId()));
+		} else {
+			log.info("Either Employee Balance OR Employee Leave Requests are empty");
 		}
 	}
 
@@ -194,6 +201,12 @@ public class LeaveUpdateService {
 		if (Objects.nonNull(employeeLeaveBalance)) {
 			log.info("Employee ID: {} Available Leave Balance: {} Applied Leave: {}", employeeId,
 					employeeLeaveBalance.getAvailableLeaves(), employeeLeaveRequest.getAppliedLeaves());
+			
+			if (employeeLeaveRequest.getAppliedLeaves() < 0) {
+				log.info("Applied leave is negative value : {}", employeeLeaveRequest.getAppliedLeaves());
+				return;
+			}
+			
 			if (Objects.nonNull(employeeLeaveBalance) && Objects.nonNull(employeeLeaveRequest)
 					&& employeeLeaveBalance.getAvailableLeaves() >= employeeLeaveRequest.getAppliedLeaves()) {
 				log.info("Employee ID : {} is eligible to take leave", employeeId);
@@ -215,10 +228,11 @@ public class LeaveUpdateService {
 		try {
 			File uploadDirectory = new File(uploadPath);
 			File employeeLeaveData = FileUtils.getFile(uploadDirectory, EMPLOYEE_LEAVE_BALANCE_FILE);
-			
-			FileUtils.writeStringToFile(employeeLeaveData, employeeLeaveDataCsvHeader + "\n", Charset.defaultCharset(), false);
+
+			FileUtils.writeStringToFile(employeeLeaveData, employeeLeaveDataCsvHeader + "\n", Charset.defaultCharset(),
+					false);
 			FileUtils.writeLines(employeeLeaveData, employeesLeaveBalance, true);
-			
+
 			File employeeLeaveRequestData = FileUtils.getFile(uploadDirectory, EMPLOYEE_LEAVE_REQUEST_FILE);
 			FileUtils.write(employeeLeaveRequestData, employeeLeaveRequestCsvHeader, Charset.defaultCharset(), false);
 		} catch (Exception e) {
