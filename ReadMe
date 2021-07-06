@@ -1,0 +1,14 @@
+
+Assumption
+	- I don't have done any handling to keep uniqueness based on EmployeeId
+	- Please avoid to keep duplicate leave request for same EmployeeId in Leaves.csv
+
+
+- Upload Employee CSV detail and Leaves.csv in following directory
+	- /Users/jonasbarochia/Downloads/tutorials/leave-management-directory/
+- If EmployeeData.csv is not found in above directory, Application won't start
+- You are allowed to shuffle CSV columns but take care in defining Headers for them
+- If invalid value (non-numeric value for number of leaves) provided in any of CSV columns, that particular record will be avoided
+- If Employee applies with Negative number of Leaves, request will be ignored
+- Sample Leaves.csv is attached as a part of project to cover possible scenarios
+
